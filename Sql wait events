@@ -1,0 +1,8 @@
+ SELECT sql_plan_hash_value,
+         event,
+         wait_class,
+         COUNT (*)
+    FROM dba_hist_active_sess_history
+   WHERE sql_id = 'd1234afh6cqpz' AND sample_time > SYSDATE - 7
+GROUP BY sql_plan_hash_value, event, wait_class
+ORDER BY 3 DESC;
