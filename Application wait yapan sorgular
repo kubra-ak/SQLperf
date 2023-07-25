@@ -1,0 +1,9 @@
+SELECT *
+  FROM (  SELECT ROUND (application_wait_time / 1000 / 1000)
+                    "APP_WAIT_TIME_second", --(Application wait time is "in microseconds")
+                 sql_id,
+                 plan_hash_value,
+                 sql_fulltext
+            FROM v$sqlstats
+        ORDER BY application_wait_time DESC)
+ WHERE ROWNUM <= 30;
