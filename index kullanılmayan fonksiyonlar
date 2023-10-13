@@ -1,0 +1,1 @@
+“NOT”, “!=”, “<>”, “TRUNC”, “SUBSTR”, “||(concatenate)” kullanıldığında index kullanılmaz
