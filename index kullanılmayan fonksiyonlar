@@ -1,1 +1,3 @@
 “NOT”, “!=”, “<>”, “TRUNC”, “SUBSTR”, “||(concatenate)” kullanıldığında index kullanılmaz
+
+ Kolon eşitliğin her iki tarafında da kullanılırsa index kullanımı iptal olur
