@@ -1,9 +1,15 @@
-Select * from
- (select parsıng_schema_name "User ",
- sql_id,hash_value
- disk_reads, executions, disk_reads/(case when executions=0 then 1 else executions end) "Disk Reads/Executions",
- sql_fulltext
- from v$sqlarea x
- where disk_reads > 100000 and parsıng_schema_name not in ('sys','dbsnmp','sysman') and parsıng_schema_name not like 'xx%'
- order by disk_reads desc)
- where rownum <= 30;
+SELECT *
+  FROM (  SELECT parsıng_schema_name "User ",
+                 sql_id,
+                 hash_value disk_reads,
+                 executions,
+                   disk_reads
+                 / (CASE WHEN executions = 0 THEN 1 ELSE executions END)
+                    "Disk Reads/Executions",
+                 sql_fulltext
+            FROM v$sqlarea x
+           WHERE     disk_reads > 100000
+                 AND parsıng_schema_name NOT IN ('SYS', 'DBSNMP', 'SYSMAN')
+                 AND parsıng_schema_name NOT LIKE 'xx%'
+        ORDER BY disk_reads DESC)
+ WHERE ROWNUM <= 30;
