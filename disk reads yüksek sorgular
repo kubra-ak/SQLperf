@@ -1,0 +1,9 @@
+Select * from
+ (select parsıng_schema_name "User ",
+ sql_id,hash_value
+ disk_reads, executions, disk_reads/(case when executions=0 then 1 else executions end) "Disk Reads/Executions",
+ sql_fulltext
+ from v$sqlarea x
+ where disk_reads > 100000 and parsıng_schema_name not in ('sys','dbsnmp','sysman') and parsıng_schema_name not like 'xx%'
+ order by disk_reads desc)
+ where rownum <= 30;
