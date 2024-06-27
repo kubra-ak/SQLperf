@@ -1,0 +1,17 @@
+/* Formatted on 27/06/2024 14:04:27 (QP5 v5.269.14213.34769) */
+SELECT *
+  FROM (  SELECT parsing_schema_name "user  ",
+                 sql_id,
+                 hash_value,
+                 buffer_gets,
+                 executions,
+                   buffer_gets
+                 / (CASE WHEN executions = 0 THEN 1 ELSE executions END)
+                    "buffer_gets/execution",
+                 a.sql_fulltext
+            FROM v$sqlarea a
+           WHERE     buffer_gets > 100000
+                 AND parsıng_schema_name NOT IN ('SYS', 'DBSNMP', 'SYSMAN')
+                 AND parsıng_schema_name NOT LIKE 'xx%'
+        ORDER BY buffer_gets DESC)
+ WHERE ROWNUM <= 30;
