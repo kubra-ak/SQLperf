@@ -1,0 +1,5 @@
+nested loopa girmesi için aşağıdaki gibi hint eklenebilir
+
+SELECT /*+ USE_NL(c b) */
+
+c b --> tablo
