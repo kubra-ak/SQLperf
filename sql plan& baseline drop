@@ -1,0 +1,37 @@
+
+
+-- sqli shared pooldan silme
+select 'exec dbms_shared_pool.purge('''||s.ADDRESS||','||s.HASH_VALUE||''',''C'',1);' from v$sql s where s.sql_id in('9kgb2254hsqw3');
+
+
+--drop sql profile 
+BEGIN
+DBMS_SQLTUNE.DROP_SQL_PROFILE(name => 'TEST_SQL_PROFILE');
+END;
+ 
+--drop sql baseline
+declare
+  res number;
+begin
+  res := DBMS_SPM.DROP_SQL_PLAN_BASELINE('&original_sql_handle',
+                                         '&original_plan_name');
+end;
+ 
+ 
+ 
+select index_owner,d.table_name, d.index_name, column_name,column_position
+from dba_ind_columns d
+where d.table_name in ('SIL_DENEME') --and index_owner='VTYUSER'
+order by index_owner,table_name,index_name,column_position;
+
+
+select * from table(dbms_xplan.display_cursor('74xt8vqs7k0uc',null,'ALL'));
+
+
+
+
+select * from table( 
+		dbms_xplan.display_sql_plan_baseline( 
+			sql_handle=>'SQL_55935c178afa4142', 
+			plan_name => 'SQL_PLAN_5b4uw2y5gnha215c2afad',
+			format=>'basic'));
