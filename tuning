@@ -1,0 +1,265 @@
+SQL_ID: dkzs4565s0qk2
+
+SELECT /*+ index(ita pk_isemri_tesis_adresi) */
+pck_rapor.getSokakBinaAdres(ita.sokak_id) adress, ita.kapi_no, ita.bina_adi,
+ie.isemri_no sira_no, ie.basvuru_tarihi, ie.id
+FROM tms.isemri ie, tms.isemri_pstn iep, tms.isemri_tesis_adresi ita
+WHERE ie.id = iep.id AND ie.basvuru_durum < 50 AND iep.devre_tahsis_durum = 18 AND ie.id = ita.id AND ie.mudurluk_id = : PRM_MUDURLUK_ID ORDER BY 1 ASC,2 ASC , 1 ASC , 2 ASC
+
+SELECT  /*+ INDEX (a MEDIATOR_INSTANCE_INDEX2) */ * FROM pr_soainfra.MEDIATOR_INSTANCE a WHERE COMPONENT_STATE in (2,3,4,5,6,7) 
+AND CREATED_TIME>=:1 ORDER BY CREATED_TIME DESC
+
+------------------------------------------------------------
+************ SORGUNUN SHARED POOL DAKI PLANINI GOR
+------------------------------------------------------------
+
+set lines 200
+column gets_per_exec format 999,999,999,999.99
+
+select inst_id,(select username from dba_users where user_id=s.parsing_user_id and rownum<2) as username,SQL_PLAN_BASELINE ,sql_fulltext,sql_profile ,trunc(elapsed_time/decode(executions, 0, 1, executions)/1000000) elapsed_time, plan_hash_value,hash_value, child_number, first_load_time,
+      last_load_time, executions, buffer_gets, trunc(buffer_gets/decode(executions, 0, 1, executions)) gets_per_exec, trunc(rows_processed/decode(executions, 0, 1,
+      executions)) rows_return_per_exec
+from gv$sql s where sql_id='ccknb8hy76mdd';
+
+ select * from (   select inst_id,sid,username ,session_serial# serial#,status, sql_id, sql_exec_id, to_char(sql_exec_start,'DD-MM-YY HH24:MI:SS') sql_exec_start, sql_plan_hash_value plan_hash_value,
+  M.FETCHES,elapsed_time/1000000 etime, buffer_gets, disk_reads,binds_xml,(select sql_fulltext from v$sql s where s.sql_id=m.sql_id and rownum=1 ) as sql_text
+  from gv$sql_monitor m
+  ) a
+  where sql_text not like '%BYPASS_RECURSIVE_CHECK%' and sql_text not like '%dbms_refresh.refresh%'
+  and username='SADMIN'
+order by sql_exec_start desc;
+
+
+select sql_fulltext,sql_profile ,trunc(elapsed_time/decode(executions, 0, 1, executions)/1000000) elapsed_time, plan_hash_value,hash_value, child_number, first_load_time,
+      last_load_time, executions, buffer_gets, trunc(buffer_gets/decode(executions, 0, 1, executions)) gets_per_exec, trunc(rows_processed/decode(executions, 0, 1,
+      executions)) rows_return_per_exec
+from gv$sql where sql_id='ck0gc9a4bfuj1';
+
+
+
+grant select on SIEBEL.S_POSTN  to operasyon;
+revoke select on  SIEBEL.S_POSTN from  operasyon;
+
+------------------------------------------------------------
+************ SQL_ID VE CHILD IN MEVCUT SQL PLANI
+------------------------------------------------------------
+
+
+select plan_table_output from table( dbms_xplan.display_cursor( 'ck0gc9a4bfuj1', 0, 'ALL' ));
+
+select plan_table_output from table( dbms_xplan.display_awr( 'ck0gc9a4bfuj1' ));
+
+select plan_table_output from table( dbms_xplan.display_cursor());
+
+|  28 |                             INDEX RANGE SCAN          | S_ORG_EXT_MAIN_PH_NUM_MX4_X |    17M|       |     1   (0)| 00:00:01 |
+
+
+------------------------------------------------------------
+************ SORGUNUN DAHA ONCEKI PLANLARI
+------------------------------------------------------------
+
+select PLAN_HASH_VALUE, trunc(sum(BUFFER_GETS_DELTA)/sum(EXECUTIONS_DELTA)) gets_per_exec, 
+       trunc(sum(ELAPSED_TIME_DELTA)/sum(EXECUTIONS_DELTA)) elap_per_exec,
+       sum(EXECUTIONS_DELTA) exec,
+       trunc(sum(A.ROWS_PROCESSED_DELTA)/sum(EXECUTIONS_DELTA)) rows_per_exec
+from dba_hist_sqlstat a
+where sql_id='5pz9xvx6ztd42'
+and EXECUTIONS_DELTA>0
+group by plan_hash_value;
+
+------------------------------------------------------------
+************ SORGUNUN BIND DEGERLERI
+------------------------------------------------------------
+
+
+
+SELECT 'var '||substr(b.NAME,2)||' '||b.DATATYPE_STRING||';'||chr(10)||
+       ''||'exec '||b.NAME||' := '||''''||b.value_string||''' ;'||chr(10)||' '  
+FROM gv$sql_bind_capture b,gv$sqlarea a
+WHERE b.sql_id = a.sql_id AND b.sql_id = 'ck0gc9a4bfuj1'
+and child_number=0;
+
+------------------------------------------------------------
+************ HEXDUMP TO TIMESTAMP
+------------------------------------------------------------
+
+undef raw_timestamp
+select to_timestamp(
+        to_char( to_number( substr( p_str, 1, 2 ), 'xx' ) - 100, 'fm00' ) ||
+        to_char( to_number( substr( p_str, 3, 2 ), 'xx' ) - 100, 'fm00' ) ||
+        to_char( to_number( substr( p_str, 5, 2 ), 'xx' ), 'fm00' ) ||
+        to_char( to_number( substr( p_str, 7, 2 ), 'xx' ), 'fm00' ) ||
+        to_char( to_number( substr( p_str,9, 2 ), 'xx' )-1, 'fm00' ) ||
+        to_char( to_number( substr( p_str,11, 2 ), 'xx' )-1, 'fm00' ) ||
+        to_char( to_number( substr( p_str,13, 2 ), 'xx' )-1, 'fm00' ), 'yyyymmddhh24miss' )
+from (select '&raw_timestamp' p_str from dual);
+
+------------------------------------------------------------
+************ SORGUNUN PLANLARININ DEGISMESI ICIN GRANT 
+------------------------------------------------------------
+
+grant select on FES_NUMARA_PLAN to ebasaran;
+revoke select on FES_NUMARA_PLAN from ebasaran;
+
+
+
+
+------------------------------------------------------------
+************ AKTIF CALISAN SORGUYU OLDUR
+------------------------------------------------------------
+
+select 'kill -9 ' || p.SPID, v.USERNAME, 'alter system kill session '''||sid||',' || v.serial# || ''';',v.STATUS,machine
+from v$session v, v$process p
+where v.SQL_iD like 'd7pmcc9snrzx9'
+and v.PADDR = p.ADDR (+)
+and v.STATUS='ACTIVE'
+
+alter system kill session '3588,12986';
+
+alter system kill session '2469,36323';
+
+
+select 'kill -9 ' || p.SPID, v.USERNAME, 'alter system kill session '''||sid||',' || v.serial# || ''';',v.STATUS,machine
+from v$session v, v$process p
+where v.SQL_iD like '8qnbr4jff8dx8'
+and v.PADDR = p.ADDR (+)
+and v.status='ACTIVE'
+
+
+select username,sql_id,count(1)
+from v$session v
+where v.STATUS='ACTIVE'
+and TYPE='USER' AND USERNAME is not null
+and sql_id is not null
+group by username,sql_id 
+order by 3 desc
+
+
+
+
+
+------------------------------------------------------------
+************ SQL_ID YE GORE SQL_TEXTI GOR
+------------------------------------------------------------
+set long 10000
+set pages 5000
+
+select sql_fulltext from v$sql where sql_id='69ard3qgj54hq' and child_number=0;
+
+
+select sql_fulltext from v$sql where sql_id='875td3wxns0dt' 
+
+------------------------------------------------------------
+************ ENSON CALISTIRDIGIN SORGUNUN PLANI
+------------------------------------------------------------
+
+set lines 145
+set pages 5000
+column plan_table_output format a190
+select plan_table_output from table( dbms_xplan.display_cursor );
+
+------------------------------------------------------------
+************ OUTLINE 
+------------------------------------------------------------
+
+-- SYS KULLANICISI ILE CALISTIRILMALIDIR
+-- <sql hash value>, <child number> , <CATEGORY > 
+
+exec dbms_outln.CREATE_OUTLINE( 150058256, 0, 'TMS_OUTLN')
+select * from dba_outlines order by TIMESTAMP desc
+select * from dba_outline_hints where  name ='SYS_OUTLINE_11011911313204801'
+
+
+
+select s.sid,s.inst_id ,p.spid from gv$session s,gv$process p  where S.SID in (715) and S.PADDR=P.ADDR and s.status='ACTIVE'
+
+select s.sid,p.spid from v$session s,v$process p  where machine='gala' and S.PADDR=P.ADDR
+
+
+
+select sql_fulltext from v$sql where sql_id='69ard3qgj54hq' and child_number=0;
+
+select inst_id,sql_id,username,machine,sid from gv$session where sql_id like '0z01974f1gfzk' and status='ACTIVE' order by inst_id,sid
+
+select 'oradebug setospid '|| spid || chr(10)
+     || 'oradebug unlimit' || chr(10)
+     || 'oradebug dump errorstack 3' || chr(10)
+     || 'oradebug event 10046 trace name context forever, level 12' || chr(10)
+      || '' || chr(10)
+     || 'oradebug dump errorstack 1' || chr(10)
+    || 'oradebug dump errorstack 1' || chr(10)
+    || 'oradebug dump errorstack 3' || chr(10)
+    || 'exec dbms_lock.sleep(30)' || chr(10)
+    || 'oradebug event 10046 trace name context off'
+from v$session s, v$process p
+where s.paddr=p.addr
+and s.sql_id='875td3wxns0dt'
+and s.status='ACTIVE';
+
+
+
+--  ACTIVE PROCESS DEBUG
+oradebug setospid 16187708
+oradebug unlimit
+oradebug event 10046 trace name context forever, level 28
+
+oradebug dump errorstack 1
+oradebug dump errorstack 1
+oradebug dump errorstack 3
+exec dbms_lock.sleep(30)
+oradebug event 10046 trace name context off
+
+
+-- SESSION DEBUG
+set heading off;
+alter session set max_dump_file_size=UNLIMITED;
+alter session set statistics_level=all;
+alter session set tracefile_identifier=xxx_1;
+alter session set events '10046 trace name context forever,level 8';
+SQL Statement
+select sysdate from dual;           
+alter session set events '10046 trace name context off';
+set heading on;
+
+
+
+--  ACTIVE PROCESS DEBUG
+oradebug setospid 28004
+oradebug unlimit
+oradebug event 10046 trace name context forever, level 28
+
+oradebug dump errorstack 1
+oradebug dump errorstack 1
+oradebug dump errorstack 3
+exec dbms_lock.sleep(30)
+oradebug event 10046 trace name context off
+
+
+
+select 'oradebug setospid '|| spid || chr(10)
+     || 'oradebug unlimit' || chr(10)
+     || 'oradebug dump errorstack 3' || chr(10)
+     || 'oradebug event 10046 trace name context off'
+from v$session s, v$process p
+where s.paddr=p.addr
+and s.machine='gala';
+
+
+------------------------------------------------------------
+************ SIEBEL  ENV 
+------------------------------------------------------------
+
+alter session set optimizer_mode    = first_rows_10
+/
+alter session set "_hash_join_enabled" = FALSE 
+/
+alter session set "_optimizer_sortmerge_join_enabled" = false 
+/
+alter session set "_optimizer_join_sel_sanity_check"  = true 
+/
+
+
+
+alter system kill session '1042,12581';
+alter system kill session '1378,28549';
+alter system kill session '1501,14534';
