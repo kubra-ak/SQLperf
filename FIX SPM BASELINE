@@ -1,0 +1,476 @@
+FIX SPM BASELINE
+
+03 Mayıs 2016 Salı
+11:37
+
+--#####################
+--spm veva baseline views
+--DBA_SQL_PLAN_BASELINES
+
+--SPM ile manuel olarak plan üzerinde birçok işlem yapmak mümkün. 
+1)DBMS_SPM.LOAD_PLANS_FROM_CURSOR_CACHE  ile plan fixlemek
+                --sql_id=g3wubsadyrt37
+                --fixlenecek plan hash value = 363261562 
+                --plan cursor cache de varsa bu adımla fixlenebilir.
+                                               DECLARE
+                                                               my_plans pls_integer;
+                                               BEGIN
+                                                               my_plans := DBMS_SPM.LOAD_PLANS_FROM_CURSOR_CACHE(
+                                                               sql_id => '4hn2539xyu190',
+                                                               PLAN_HASH_VALUE =>2068076234,
+                                                               FIXED =>'YES');
+                                                               dbms_output.put_line('Value is '||my_plans);
+                                               END;
+                                               /
+                                               
+                --bu adımın sonunda yüklenen plan/planlar output olarak görülebilir.
+                                               SQL>select sql_handle, plan_name, enabled, accepted, fixed from dba_sql_plan_baselines;
+                                               
+                                               SQL_HANDLE PLAN_NAME ENA ACC FIX
+------------------------------ ------------------------------ --- --- ---
+                                               SQL_425f937308b8fde3 SQL_PLAN_44rwmfc4bjzg3621540b0 YES YES YES
+                                               
+                --yukardaki baseline'a uyan plan bilgilerini aşağıdaki şekilde görebilriz.
+                                               SQL> select * from table(
+                                               dbms_xplan.display_sql_plan_baseline(
+                                               sql_handle=>'SQL_fbe9677bbc547bb6',
+                                               format=>'advanced')); 
+                                                
+                                               PLAN_TABLE_OUTPUT
+                                               ---------------------------------------------------------------------------------------------------------------
+                                               
+                                               SQL handle: SQL_425f937308b8fde3
+                                               SQL text: select count(*) from plan_stability where owner='SYS'
+                                               --------------------------------------------------------------------------------
+                                               
+                                               --------------------------------------------------------------------------------
+                                               Plan name: SQL_PLAN_44rwmfc4bjzg3621540b0     Plan id: 1645559984
+                                               Enabled: YES     Fixed: NO  Accepted: YES     Origin: MANUAL-LOAD
+                                               --------------------------------------------------------------------------------
+                                               
+                                               Plan hash value: 363261562
+                                               
+                                               ---------------------------------------------
+                                               | Id  | Operation      | Name       |
+                                               ---------------------------------------------
+                                               |   0 | SELECT STATEMENT   |            |
+                                               |   1 |  SORT AGGREGATE    |            |
+                                               |   2 |   TABLE ACCESS FULL| PLAN_STABILITY |
+                                               ---------------------------------------------
+                                               
+                                               20 rows selected.
+                                               
+                --sorgumuzun baseline ile ürettiimiz planı kullnıp kullanmadığını,sorguyu bir kere de biz çalıştıralım.
+                                               SQL> select count(*) from plan_stability where owner='SYS';
+                                               
+                                               COUNT(*)
+                                               ----------
+                                               1020384
+                                               
+                                               SQL> select * from table(dbms_xplan.display_cursor);
+                                               
+                                               PLAN_TABLE_OUTPUT
+                                               ---------------------------------------------------------------------------------------------------------------
+                                               SQL_ID g3wubsadyrt37, child number 1
+                                               -------------------------------------
+                                               select count(*) from plan_stability where owner='SYS'
+                                               
+                                               Plan hash value: 363261562
+                                               
+                                               -------------------------------------------------------------------------------------
+                                               | Id | Operation | Name | Rows | Bytes | Cost (%CPU)| Time |
+                                               -------------------------------------------------------------------------------------
+                                               | 0 | SELECT STATEMENT | | | | 2476 (100)| |
+                                               | 1 | SORT AGGREGATE | | 1 | 6 | | |
+                                               |* 2 | TABLE ACCESS FULL| PLAN_STABILITY | 23092 | 135K| 2476 (1)| 00:00:30 |
+                                               -------------------------------------------------------------------------------------
+                                               
+                                               Predicate Information (identified by operation id):
+                                               ---------------------------------------------------
+                                               
+                                               2 - filter("OWNER"='SYS')
+                                               
+                                               Note
+                                               -----
+                                               - SQL plan baseline SQL_PLAN_44rwmfc4bjzg3621540b0 used for this statement
+2)DBMS_SPM.LOAD_PLANS_FROM_SQLSET ile plan fixlemek.
+                               --AWR de iyi olduğunu düşündüğümüz bir sql plan varsa DBMS_SPM.LOAD_PLANS_FROM_SQLSET ile baseline oluşturabiliriz.
+                               --bu aşamada DBMS_SPM.LOAD_PLANS_FROM_SQLSET'yi kullanamak için sql tuning set oluşturmalıyız. sql tuning set'i DBMS_SQLTUNE kullanarak yapabiliriz.
+                                                               BEGIN
+                                                               DBMS_SQLTUNE.CREATE_SQLSET(
+                                                               sqlset_name => 'sqlset_gktt6bxdgptvs',
+                                                               description => 'seydi_korurer_gktt6bxdgptvs');
+                                                               END;
+                                                               /
+                                                               
+                               --sql_id=g3wubsadyrt37 için AWR'den sql tuning set yükleyelim.
+                               --öncesinde istediğimiz planın olduu awr aralıklarını biliyor olmalıyız.
+                               --bu awr aralıklarında sadece belirli bir sorguya etkilemek için BASIC_FILTER => 'sql_id = ''g3wubsadyrt37''' kullanılmalıdır.
+                                                               DECLARE
+                                                               baseline_cursor DBMS_SQLTUNE.SQLSET_CURSOR;
+                                                               BEGIN
+                                                               OPEN baseline_cursor FOR
+                                                               SELECT VALUE(p)
+                                                               FROM TABLE (DBMS_SQLTUNE.SELECT_WORKLOAD_REPOSITORY(
+                                                               BEGIN_SNAP => 3651,
+                                                               END_SNAP => 4562,
+                                                               BASIC_FILTER => 'sql_id = ''gktt6bxdgptvs'' and plan_hash_value=2986685775',
+                                                               ATTRIBUTE_LIST =>'ALL')) p;
+                                                               
+                                                               DBMS_SQLTUNE.LOAD_SQLSET(
+                                                               sqlset_name => 'sqlset_gktt6bxdgptvs',
+                                                               populate_cursor => baseline_cursor);
+                                                               END;
+                                                               /
+                                                               
+                               --bu sql_id için her iki planın sqlset'de olduğunu görelim.
+                                                               SELECT SQL_ID,PLAN_HASH_VALUE FROM TABLE(DBMS_SQLTUNE.SELECT_SQLSET('sqlset_gktt6bxdgptvs'));
+                                                               
+                                                               SQL_ID PLAN_HASH_VALUE
+                                                               ------------- ---------------
+                                                               g3wubsadyrt37 363261562
+                                                               g3wubsadyrt37 3082746383
+                                                               
+                               --şimdi DBMS_SPM.LOAD_PLANS_FROM_SQLSET ile sql plan baseline oluşturalım.
+                                                               DECLARE
+                                                               my_plans pls_integer;
+                                                               BEGIN
+                                                               my_plans := DBMS_SPM.LOAD_PLANS_FROM_SQLSET(
+                                                               SQLSET_NAME => 'sqlset_gktt6bxdgptvs'
+                                                               );
+                                                               dbms_output.put_line('Value is '||my_plans);
+                                                               END;
+                                                               /
+                                                               
+                               --iki planın da yüklendiğini görelim.
+                                                               SQL> select sql_handle, plan_name, enabled, accepted, fixed, created, last_modified from dba_sql_plan_baselines;
+                                                               
+                                                               SQL_HANDLE PLAN_NAME ENA ACC FIX
+                                                               ------------------------------ ------------------------------ --- --- ---
+                                                               SQL_425f937308b8fde3 SQL_PLAN_44rwmfc4bjzg3621540b0 YES YES NO
+                                                               SQL_425f937308b8fde3 SQL_PLAN_44rwmfc4bjzg3ec110d89 YES YES NO
+                                                               
+                               --plan_name=SQL_PLAN_44rwmfc4bjzg3621540b0 daha önce yapılmıştı. dolayısıyla şimdi oluşan plan_name=SQL_PLAN_44rwmfc4bjzg3ec110d89
+                               --SQL_PLAN_44rwmfc4bjzg3ec110d89 nin full table scan olmayan olduğunu bildiğimizden bunu disable ediyoruz.
+                               --aslında karışıklığı önlemek için sql_handle isimlerini farklı vermekte fayda var
+                                                               DECLARE
+                                                               my_plans pls_integer;
+                                                               BEGIN
+                                                               my_plans := DBMS_SPM.ALTER_SQL_PLAN_BASELINE(
+                                                               sql_handle =>'SQL_425f937308b8fde3',
+                                                               PLAN_NAME =>'SQL_PLAN_44rwmfc4bjzg3ec110d89',
+                                                               attribute_name =>'enabled',
+                                                               attribute_value=>'NO');
+                                                               dbms_output.put_line('Value is '||my_plans);
+                                                               END;
+                                                               /
+
+3)hem cursor cache'de hemde AWR'de olmayan bir lanın hint ile manuel oluşturuduktans sonra spm ile fixlemek.
+                               --sql_id=8zt8m80dkzqc2
+                               --mevcut plan_hash_value=2265447171
+                               --awrde de olmadığını select plan_table_output from table( dbms_xplan.display_awr( '8zt8m80dkzqc2' )); ile gördük.
+                               
+                               select plan_table_output from table( dbms_xplan.display_cursor( '8zt8m80dkzqc2', 0, 'ALL' ));
+                                                               SQL_ID  8zt8m80dkzqc2, child number 0
+                                                               -------------------------------------
+                                                               
+                                                               Plan hash value: 2265447171
+                                                               
+                                                               ------------------------------------------------------------------------------------------------------------------------------------------------
+                                                               | Id  | Operation                              | Name                          | Rows  | Bytes |TempSpc| Cost (%CPU)| Time     | Pstart| Pstop |
+                                                               ------------------------------------------------------------------------------------------------------------------------------------------------
+                                                               |   0 | SELECT STATEMENT                       |                               |       |       |       | 99797 (100)|          |       |       |
+                                                               |   1 |  SORT UNIQUE                           |                               | 22839 |  3836K|  4160K| 99797   (6)| 00:19:58 |       |       |
+                                                               |   2 |   UNION-ALL                            |                               |       |       |       |            |          |       |       |
+                                                               |   3 |    NESTED LOOPS                        |                               |       |       |       |            |          |       |       |
+                                                               |   4 |     NESTED LOOPS                       |                               | 22818 |  3832K|       | 93558   (1)| 00:18:43 |       |       |
+                                                               |*  5 |      HASH JOIN RIGHT OUTER             |                               | 22818 |  3364K|       |  2253   (1)| 00:00:28 |       |       |
+                                                               |   6 |       TABLE ACCESS FULL                | ARIZA_ISLAH                   |  2374 | 73594 |       |    19   (0)| 00:00:01 |       |       |
+                                                               |*  7 |       TABLE ACCESS FULL                | ARIZA_IHBAR                   | 22818 |  2673K|       |  2233   (1)| 00:00:27 |       |       |
+                                                               |*  8 |      INDEX RANGE SCAN                  | DS_LG_ITIP_TX_DRM_KOD_INDX_Y  |     1 |       |       |     3   (0)| 00:00:01 |       |       |
+                                                               |*  9 |     TABLE ACCESS BY GLOBAL INDEX ROWID | DIS_SISTEM_LOG                |     1 |    21 |       |     4   (0)| 00:00:01 | ROWID | ROWID |
+                                                               |* 10 |    HASH JOIN RIGHT OUTER               |                               | 15420 |  2590K|       |  5372   (1)| 00:01:05 |       |       |
+                                                               |  11 |     TABLE ACCESS FULL                  | ARIZA_ISLAH                   |  2374 | 73594 |       |    19   (0)| 00:00:01 |       |       |
+                                                               |* 12 |     HASH JOIN RIGHT ANTI               |                               | 15420 |  2123K|       |  5353   (1)| 00:01:05 |       |       |
+                                                               |  13 |      TABLE ACCESS BY GLOBAL INDEX ROWID| DIS_SISTEM_LOG                |  7397 |   151K|       |  3119   (1)| 00:00:38 | ROWID | ROWID |
+                                                               |* 14 |       INDEX RANGE SCAN                 | DIS_SISTEM_LOG_IS_TIP_DRM_X_Y |  7936 |       |       |    62   (0)| 00:00:01 |       |       |
+                                                               |* 15 |      TABLE ACCESS FULL                 | ARIZA_IHBAR                   | 22818 |  2673K|       |  2233   (1)| 00:00:27 |       |       |
+                                                               ------------------------------------------------------------------------------------------------------------------------------------------------
+                                                               
+                                                               Predicate Information (identified by operation id):
+                                                               ---------------------------------------------------
+                                                               
+                                                                  5 - access("T1"."SON_ISLEM_KODU"="T3"."ISLAH_ID" AND "T1"."XDSL_TIP_KODU"="T3"."XDSL_TIP_KODU")
+                                                                  7 - filter(("T1"."SON_ASAMA"=:SYS_B_06 AND "T1"."KANAL_KODU"=:SYS_B_07))
+                                                                  8 - access("T2"."ISLEM_TIP_ID"=:SYS_B_08 AND "T1"."ARIZA_ID"="T2"."TX_ID" AND "T2"."DURUM_KOD"=:SYS_B_09)
+                                                                  9 - filter("T1"."CIHAZ_NO"="T2"."CIHAZ_NO")
+                                                                 10 - access("T1"."SON_ISLEM_KODU"="T3"."ISLAH_ID" AND "T1"."XDSL_TIP_KODU"="T3"."XDSL_TIP_KODU")
+                                                                 12 - access("T1"."CIHAZ_NO"="T2"."CIHAZ_NO" AND "T1"."ARIZA_ID"="T2"."TX_ID")
+                                                                 14 - access("T2"."ISLEM_TIP_ID"=:SYS_B_19 AND "T2"."DURUM_KOD"=:SYS_B_20)
+                                                                 15 - filter(("T1"."SON_ASAMA"=:SYS_B_16 AND "T1"."KANAL_KODU"=:SYS_B_17))
+                                                               
+                               --baseline durumları
+                                                               SQL> select sql_handle, plan_name, enabled, accepted, fixed,sql_text from dba_sql_plan_baselines;
+
+                                                               SQL_HANDLE                     PLAN_NAME                      ENA ACC FIX SQL_TEXT
+                                                               ------------------------------ ------------------------------ --- --- --- --------------------------------------------------------------------------------
+                                                               SQL_4fd7bbd750e46f2a           SQL_PLAN_4zpxvux8f8vta07e4dd6e YES YES NO  SELECT T2.MUSTERI_ID, T2.GERCEK_TUZEL, DECODE(T2.GERCEK_TUZEL, :"SYS_B_0", T2.TC
+                                                               SQL_4fd7bbd750e46f2a           SQL_PLAN_4zpxvux8f8vtacde901e2 YES NO  NO  SELECT T2.MUSTERI_ID, T2.GERCEK_TUZEL, DECODE(T2.GERCEK_TUZEL, :"SYS_B_0", T2.TC                     
+                               --önce indexden giden(kullanmasını istemediğimiz) planın baseline'ını oluşturalım. dikkat fixlemiyoruz.
+                                                               set serveroutput on
+                                                               
+                                                               DECLARE
+                                                               my_plans pls_integer;
+                                                               BEGIN
+                                                               my_plans := DBMS_SPM.LOAD_PLANS_FROM_CURSOR_CACHE(
+                                                               sql_id => '8zt8m80dkzqc2',
+                                                               PLAN_HASH_VALUE =>2265447171
+                                                               );
+                                                               dbms_output.put_line('Value is '||my_plans);
+                                                               END;
+                                                               /
+                                                               
+                                                               SQL>select sql_handle, plan_name, enabled, accepted, fixed,sql_text from dba_sql_plan_baselines;
+                                                               
+                                                               SQL_HANDLE                     PLAN_NAME                      ENA ACC FIX SQL_TEXT
+                                                               ------------------------------ ------------------------------ --- --- --- --------------------------------------------------------------------------------
+                                                               SQL_4fd7bbd750e46f2a           SQL_PLAN_4zpxvux8f8vta07e4dd6e YES YES NO  SELECT T2.MUSTERI_ID, T2.GERCEK_TUZEL, DECODE(T2.GERCEK_TUZEL, :"SYS_B_0", T2.TC
+                                                               SQL_4fd7bbd750e46f2a           SQL_PLAN_4zpxvux8f8vtacde901e2 YES NO  NO  SELECT T2.MUSTERI_ID, T2.GERCEK_TUZEL, DECODE(T2.GERCEK_TUZEL, :"SYS_B_0", T2.TC
+                                                               SQL_5de9f0c359f142b2           SQL_PLAN_5vughsdcz2hpk6cbce42d YES YES NO  SELECT DISTINCT t1.ariza_id, t1.cihaz_no, TO_CHAR (t1.ihbar_tarihi, :"SYS_B_00")
+                                                               
+                               --şimdi sorgumuza hint ekleyerek manuel çalıştıralım
+                                                               SQL> select /*+ full(plan_stability) */ count(*) from plan_stability where owner='SYS';
+                                                               
+                                                               COUNT(*)
+                                                               ----------
+                                                               1020384
+                                                               
+                                                               SQL> select /*+ full(plan_stability) */ count(*) from plan_stability where owner='SYS';
+                                                               
+                                                               COUNT(*)
+                                                               ----------
+                                                               1020384
+                                                               
+                                                               SQL> select plan_table_output from table( dbms_xplan.display_cursor( '8zt8m80dkzqc2', 0, 'ALL' ));
+                                                               
+                                                               PLAN_TABLE_OUTPUT
+                                                               ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                               SQL_ID  8zt8m80dkzqc2, child number 0
+                                                               -------------------------------------
+
+                                                               Plan hash value: 2265447171
+
+                                                               ------------------------------------------------------------------------------------------------------------------------------------------------
+                                                               | Id  | Operation                              | Name                          | Rows  | Bytes |TempSpc| Cost (%CPU)| Time     | Pstart| Pstop |
+                                                               ------------------------------------------------------------------------------------------------------------------------------------------------
+                                                               |   0 | SELECT STATEMENT                       |                               |       |       |       | 99797 (100)|          |       |       |
+                                                               |   1 |  SORT UNIQUE                           |                               | 22839 |  3836K|  4160K| 99797   (6)| 00:19:58 |       |       |
+                                                               |   2 |   UNION-ALL                            |                               |       |       |       |            |          |       |       |
+                                                               |   3 |    NESTED LOOPS                        |                               |       |       |       |            |          |       |       |
+                                                               |   4 |     NESTED LOOPS                       |                               | 22818 |  3832K|       | 93558   (1)| 00:18:43 |       |       |
+                                                               |*  5 |      HASH JOIN RIGHT OUTER             |                               | 22818 |  3364K|       |  2253   (1)| 00:00:28 |       |       |
+                                                               |   6 |       TABLE ACCESS FULL                | ARIZA_ISLAH                   |  2374 | 73594 |       |    19   (0)| 00:00:01 |       |       |
+                                                               |*  7 |       TABLE ACCESS FULL                | ARIZA_IHBAR                   | 22818 |  2673K|       |  2233   (1)| 00:00:27 |       |       |
+                                                               |*  8 |      INDEX RANGE SCAN                  | DS_LG_ITIP_TX_DRM_KOD_INDX_Y  |     1 |       |       |     3   (0)| 00:00:01 |       |       |
+                                                               |*  9 |     TABLE ACCESS BY GLOBAL INDEX ROWID | DIS_SISTEM_LOG                |     1 |    21 |       |     4   (0)| 00:00:01 | ROWID | ROWID |
+                                                               |* 10 |    HASH JOIN RIGHT OUTER               |                               | 15420 |  2590K|       |  5372   (1)| 00:01:05 |       |       |
+                                                               |  11 |     TABLE ACCESS FULL                  | ARIZA_ISLAH                   |  2374 | 73594 |       |    19   (0)| 00:00:01 |       |       |
+                                                               |* 12 |     HASH JOIN RIGHT ANTI               |                               | 15420 |  2123K|       |  5353   (1)| 00:01:05 |       |       |
+                                                               |  13 |      TABLE ACCESS BY GLOBAL INDEX ROWID| DIS_SISTEM_LOG                |  7397 |   151K|       |  3119   (1)| 00:00:38 | ROWID | ROWID |
+                                                               |* 14 |       INDEX RANGE SCAN                 | DIS_SISTEM_LOG_IS_TIP_DRM_X_Y |  7936 |       |       |    62   (0)| 00:00:01 |       |       |
+                                                               |* 15 |      TABLE ACCESS FULL                 | ARIZA_IHBAR                   | 22818 |  2673K|       |  2233   (1)| 00:00:27 |       |       |
+                                                               ------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+                                                               Predicate Information (identified by operation id):
+                                                               ---------------------------------------------------
+
+                                                                  5 - access("T1"."SON_ISLEM_KODU"="T3"."ISLAH_ID" AND "T1"."XDSL_TIP_KODU"="T3"."XDSL_TIP_KODU")
+                                                                  7 - filter(("T1"."SON_ASAMA"=:SYS_B_06 AND "T1"."KANAL_KODU"=:SYS_B_07))
+                                                                  8 - access("T2"."ISLEM_TIP_ID"=:SYS_B_08 AND "T1"."ARIZA_ID"="T2"."TX_ID" AND "T2"."DURUM_KOD"=:SYS_B_09)
+                                                                  9 - filter("T1"."CIHAZ_NO"="T2"."CIHAZ_NO")
+                                                                 10 - access("T1"."SON_ISLEM_KODU"="T3"."ISLAH_ID" AND "T1"."XDSL_TIP_KODU"="T3"."XDSL_TIP_KODU")
+                                                                 12 - access("T1"."CIHAZ_NO"="T2"."CIHAZ_NO" AND "T1"."ARIZA_ID"="T2"."TX_ID")
+                                                                 14 - access("T2"."ISLEM_TIP_ID"=:SYS_B_19 AND "T2"."DURUM_KOD"=:SYS_B_20)
+                                                                 15 - filter(("T1"."SON_ASAMA"=:SYS_B_16 AND "T1"."KANAL_KODU"=:SYS_B_17))
+
+                                                               
+
+
+                                                               102 rows selected.
+                                                               
+                               -- sql_id=8zt8m80dkzqc2 and plan_hash_value=2265447171 için baseline oluşturalım ve fizleeylim.
+                               
+                                                               set serveroutput on
+                                                               
+                                                               DECLARE
+                                                               my_plans pls_integer;
+                                                               BEGIN
+                                                               my_plans := DBMS_SPM.LOAD_PLANS_FROM_CURSOR_CACHE(
+                                                               sql_id => '8zt8m80dkzqc2',
+                                                               sql_handle =>'SQL_5de9f0c359f142b2',
+                                                               PLAN_HASH_VALUE =>2265447171,
+                                                               FIXED =>'YES'
+                                                               );
+                                                               dbms_output.put_line('Value is '||my_plans);
+                                                               END;
+                                                               /
+                                                               
+                               --yukarıda fixed dedik özellikle, çünkü fixed olan planın fixed olmayan plana göre önceliği vardır.
+                               --eski baseline (istemediğimiz) drop edilebilir.
+                               
+                                                               SQL>select sql_handle, plan_name, enabled, accepted, fixed,sql_text from dba_sql_plan_baselines;
+                               --drop sırasında drop functionuna sadece sql_handle verilirse aynı isimdeki bütün baseline'lar silinecektir. dolayısıyla sql_handle isimlerini farklı ve belirleyici vermekte fayda var.
+                                                               DECLARE
+                                                               my_plans pls_integer;
+                                                               BEGIN
+                                                               my_plans := DBMS_SPM.DROP_SQL_PLAN_BASELINE(
+                                                               sql_handle => 'SQL_0b1d5e47fabc4077',
+                                                               PLAN_NAME =>'SQL_PLAN_0q7ay8zxbsh3r751ff478');
+                                                               dbms_output.put_line('Value is '||my_plans);
+                                                               END;
+                                                               /
+                                                               
+                               --drop etmek yerine disable da edilebilir.
+                                                               DECLARE
+                                                               my_plans pls_integer;
+                                                               BEGIN
+                                                               my_plans := DBMS_SPM.ALTER_SQL_PLAN_BASELINE(
+                                                               sql_handle =>'SQL_425f937308b8fde3',
+                                                               PLAN_NAME =>'SQL_PLAN_44rwmfc4bjzg3ec110d89',
+                                                               attribute_name =>'enabled',
+                                                               attribute_value=>'NO');
+                                                               dbms_output.put_line('Value is '||my_plans);
+                                                               END;
+                                                               /
+                               --bu adımdan sonra baseline'da 2 plan olduğunu görebiliriz(drop edilmemişse)ve istediğimiz full table scan'dan gideceğini görebilriz.
+                               
+                               
+not:sql baseline create/drop işlemi ile sql cursor cache'den purge edilir ve yeni çalışmayla hard parse olur.'
+
+
+--!!!(bu adım bir kez test edilecek!)hint ile manule değiştirilecek sorgularda spm ile baseline olutururken aşağıdaki duruma dikkat etmek gerekir.
+                                               SQL> select /*+ full(a) */ count(*) from plan_stability a where owner='SYS';
+                                               
+                                               COUNT(*)
+                                               ----------
+                                               1020384
+                                               
+                                               Elapsed: 00:00:00.18
+                                               select /*+ full(a) */ count(*) from plan_stability a where owner='SYS';
+                                               
+                                               COUNT(*)
+                                               ----------
+                                               1020384
+                                               
+                                               SQL> select * from table(dbms_xplan.display_cursor);
+                                               
+                                               PLAN_TABLE_OUTPUT
+                                               ---------------------------------------------------------------------------------------------------------------
+                                               SQL_ID 85hj3c8570fdu, child number 0
+                                               -------------------------------------
+                                               select /*+ full(a) */ count(*) from plan_stability a where owner='SYS'
+                                               
+                                               Plan hash value: 363261562
+                                               
+                                               -------------------------------------------------------------------------------------
+                                               | Id | Operation | Name | Rows | Bytes | Cost (%CPU)| Time |
+                                               -------------------------------------------------------------------------------------
+                                               | 0 | SELECT STATEMENT | | | | 2476 (100)| |
+                                               | 1 | SORT AGGREGATE | | 1 | 6 | | |
+                                               |* 2 | TABLE ACCESS FULL| PLAN_STABILITY | 23092 | 135K| 2476 (1)| 00:00:30 |
+                                               -------------------------------------------------------------------------------------
+                                               
+                                               Predicate Information (identified by operation id):
+                                               ---------------------------------------------------
+                                               
+                                               2 - filter("OWNER"='SYS')
+                                               
+                                               SQL>DECLARE
+                                               my_plans pls_integer;
+                                               BEGIN
+                                               my_plans := DBMS_SPM.LOAD_PLANS_FROM_CURSOR_CACHE(
+                                               sql_id => '85hj3c8570fdu',
+                                               sql_handle =>'SQL_425f937308b8fde3',
+                                               PLAN_HASH_VALUE =>363261562,
+                                               FIXED =>'YES'
+                                               );
+                                               dbms_output.put_line('Value is '||my_plans);
+                                               END;
+                                               /
+                                               
+                                               SQL>select sql_handle, plan_name, enabled, accepted, fixed,sql_text from dba_sql_plan_baselines;
+                                               
+                                               SQL_HANDLE PLAN_NAME ENA ACC FIX SQL_TEXT
+                                               ------------------------------ ------------------------------ --- --- --- --------------------------------------------------------------------------------
+                                               SQL_425f937308b8fde3 SQL_PLAN_44rwmfc4bjzg3621540b0 YES YES YES select count(*) from plan_stability where owner='SYS'
+                                               
+                                               SQL> select * from table(dbms_xplan.display_cursor);
+                                               
+                                               PLAN_TABLE_OUTPUT
+                                               ---------------------------------------------------------------------------------------------------------------
+                                               SQL_ID g3wubsadyrt37, child number 1
+                                               -------------------------------------
+                                               select count(*) from plan_stability where owner='SYS'
+                                               
+                                               Plan hash value: 363261562
+                                               
+                                               -------------------------------------------------------------------------------------
+                                               | Id | Operation | Name | Rows | Bytes | Cost (%CPU)| Time |
+                                               -------------------------------------------------------------------------------------
+                                               | 0 | SELECT STATEMENT | | | | 2476 (100)| |
+                                               | 1 | SORT AGGREGATE | | 1 | 6 | | |
+                                               |* 2 | TABLE ACCESS FULL| PLAN_STABILITY | 23092 | 135K| 2476 (1)| 00:00:30 |
+                                               -------------------------------------------------------------------------------------
+                                               
+                                               Predicate Information (identified by operation id):
+                                               ---------------------------------------------------
+                                               
+                                               2 - filter("OWNER"='SYS')
+                                               
+                --şimdi baseline bilgisine dbms_xplan.display_sql_plan_baseline  den bakalım.
+                                               SQL> select * from table(
+                                               dbms_xplan.display_sql_plan_baseline(
+                                               sql_handle=>'SQL_425f937308b8fde3',
+                                               format=>'basic'));
+                                               
+                                               PLAN_TABLE_OUTPUT
+                                               --------------------------------------------------------------------------------------------------------------
+                                               
+                                               SQL handle: SQL_425f937308b8fde3
+                                               SQL text: select count(*) from plan_stability where owner='SYS'
+                                               --------------------------------------------------------------------------------
+                                               
+                                               --------------------------------------------------------------------------------
+                                               Plan name: SQL_PLAN_44rwmfc4bjzg3621540b0 Plan id: 1645559984
+                                               Enabled: YES Fixed: YES Accepted: YES Origin: MANUAL-LOAD
+                                               --------------------------------------------------------------------------------
+                                               
+                                               Plan hash value: 3082746383
+                                               
+                                               --------------------------------------------------
+                                               | Id | Operation | Name |
+                                               --------------------------------------------------
+                                               | 0 | SELECT STATEMENT | |
+                                               | 1 | SORT AGGREGATE | |
+                                               | 2 | INDEX RANGE SCAN| IDX_PLAN_STABI_OWNER |
+                                               --------------------------------------------------
+                                               
+                                               --------------------------------------------------------------------------------
+                                               Plan name: SQL_PLAN_44rwmfc4bjzg3ec110d89 Plan id: 3960540553
+                                               Enabled: YES Fixed: NO Accepted: NO Origin: AUTO-CAPTURE
+                                               --------------------------------------------------------------------------------
+                                               
+                                               Plan hash value: 3082746383
+                                               
+                                               --------------------------------------------------
+                                               | Id | Operation | Name |
+                                               --------------------------------------------------
+                                               | 0 | SELECT STATEMENT | |
+                                               | 1 | SORT AGGREGATE | |
+                                               | 2 | INDEX RANGE SCAN| IDX_PLAN_STABI_OWNER |
+                                               --------------------------------------------------
+                                               
+                --yukarda göreleceğ üzere SQL_PLAN_44rwmfc4bjzg3621540b0 full tablöe scan yapmıyor. bunun sebebi hint sırasınd alias kullnımı olabilir(test edip araştırılacak)
+
+
