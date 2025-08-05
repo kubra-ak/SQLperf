@@ -1,0 +1,60 @@
+ SELECT sql_id,
+         COUNT (*),
+         ROUND (MIN (delta), 0) mn,
+         ROUND (AVG (delta), 0) av,
+         ROUND (MAX (delta), 0) mx,
+         SUBSTR (MAX (times), 12) max_run_time,
+         SUBSTR (MIN (times), 12) min_run_time
+    FROM (  SELECT sql_id,
+                   sql_exec_id,
+                   MAX (delta) delta,
+                      -- lpad sets a fixed width on delta so it can be
+                      -- stripped off above with substr
+                      -- delta in "times" is just for sorting not displaying
+                      LPAD (ROUND (MAX (delta), 0), 10)
+                   || ' '
+                   || TO_CHAR (MIN (start_time), 'YY-MM-DD HH24:MI:SS')
+                   || ' '
+                   || TO_CHAR (MAX (end_time), 'YY-MM-DD HH24:MI:SS')
+                      times
+              FROM (SELECT sql_id,
+                           sql_exec_id,
+                           CAST (sample_time AS DATE) end_time,
+                           CAST (sql_exec_start AS DATE) start_time,
+                             (  (CAST (sample_time AS DATE))
+                              - (CAST (sql_exec_start AS DATE)))
+                           * (3600 * 24)
+                              delta
+                      FROM v$active_session_history
+                     WHERE sql_exec_id IS NOT NULL)
+          GROUP BY sql_id, sql_exec_id)
+GROUP BY sql_id
+having ROUND (MAX (delta), 0)>100
+ORDER BY 6 desc
+
+
+----------------------------specific sql_id ye göre
+   select
+        sql_id,
+        sql_exec_id,
+        max(delta) delta ,
+        -- lpad sets a fixed width on delta so it can be
+        -- stripped off above with substr
+        -- delta in "times" is just for sorting not displaying
+        lpad(round(max(delta),0),10) || ' ' ||
+        to_char(min(start_time),'YY-MM-DD HH24:MI:SS')  || ' ' ||
+        to_char(max(end_time),'YY-MM-DD HH24:MI:SS')  times
+   from ( select
+                                            sql_id,
+                                            sql_exec_id,
+              cast(sample_time as date)     end_time,
+              cast(sql_exec_start as date)  start_time,
+              ((cast(sample_time    as date)) -
+               (cast(sql_exec_start as date))) * (3600*24) delta
+
+           from
+              gv$active_session_history--dba_hist_active_sess_history
+           where sql_exec_id is not null
+           and sql_id='6vrjcyt9fv8cc'
+        )
+   group by sql_id,sql_exec_id
