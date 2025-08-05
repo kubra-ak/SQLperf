@@ -1,0 +1,21 @@
+  SELECT day, serial, VALUE
+    FROM (  SELECT TO_CHAR (s.begin_interval_time, 'mm/dd') day,
+                   'Elapsed time(s)' serial,
+                   ROUND (
+                      AVG (
+                         (  SQL.ELAPSED_TIME_DELTA
+                          / 1000000
+                          / NVL (REPLACE (sql.executions_delta, 0, 1), 1))),
+                      2)
+                      VALUE
+              FROM dba_hist_sqlstat sql, dba_hist_snapshot s
+             WHERE s.snap_id = sql.snap_id AND SQL.sql_id = :SQL_ID
+          GROUP BY TO_CHAR (s.begin_interval_time, 'mm/dd'), sql_id
+          UNION ALL
+          (  SELECT TO_CHAR (s.begin_interval_time, 'mm/dd') day,
+                    'Executions' serial,
+                    SUM (sql.executions_delta) VALUE
+               FROM dba_hist_sqlstat sql, dba_hist_snapshot s
+              WHERE s.snap_id = sql.snap_id AND SQL.sql_id = :SQL_ID
+           GROUP BY TO_CHAR (s.begin_interval_time, 'mm/dd'), sql_id))
+ORDER BY day DESC;
