@@ -1,0 +1,128 @@
+1-) ASH dakikalık wait class analyze
+
+select 
+extract( hour from sample_time) as hourx,
+trim (to_char(sample_time ,'mi')) as timex,
+sql_id,
+wait_class,
+count(1) as cnt
+from v$active_session_history ash
+where sample_time between     sysdate-1/24    and    sysdate
+and ASH.SESSION_TYPE<>'BACKGROUND' 
+group by sql_id,wait_class,extract( hour from sample_time), trim (to_char(sample_time ,'mi'))
+order by 1 desc,2 desc,5 desc;
+
+2-) ASH dakikalık event analyze
+
+select 
+extract( hour from sample_time) as hourx,
+trim (to_char(sample_time ,'mi')) as timex,
+sql_id,
+event,
+count(1) as cnt
+from v$active_session_history ash
+where sample_time between     sysdate-1/24    and    sysdate
+and ASH.SESSION_TYPE<>'BACKGROUND' 
+group by sql_id,event,extract( hour from sample_time), trim (to_char(sample_time ,'mi'))
+order by 1 desc,2 desc,5 desc;
+
+
+
+3-)ASH  saatlik event ler
+
+select hourx,event,cnt from (
+select a.*,ROW_NUMBER() OVER (partition by a.hourx ORDER BY a.cnt desc NULLS LAST )as row_numberx 
+from (
+select extract( hour from sample_time) as hourx,  event,count(1) as cnt
+from v$active_session_history
+where sample_time between     sysdate-1/24    and    sysdate
+and extract( hour from sample_time) between 8 and 18   
+group by extract( hour from sample_time),  event
+--order by 1 desc,3 desc;
+) a )b
+where row_numberx<4
+and event is not null;
+
+*******************************-----kısa saat aralığındaki specifik event count
+
+  select sql_id, count(1)
+from gv$active_session_history
+where sample_time between to_date('01-06-16 08:30:00','DD-MM-YY HH24:MI:SS')
+and to_date('01-06-16 09:00:00','DD-MM-YY HH24:MI:SS')
+and event = 'row cache lock'
+group by sql_id order by 2 desc;
+
+
+
+**************************----------ASH  1 dakikalık aralıklarla inceliyor
+select datex,hourx,minutex,event,cnt from (
+select a.*,ROW_NUMBER() OVER (partition by a.datex,a.hourx,a.minutex ORDER BY a.cnt desc NULLS LAST )as row_numberx 
+from (
+select
+trim (to_char(sample_time ,'dd-mm-yy')) as datex , 
+extract( hour from sample_time) as hourx,
+extract( minute from sample_time) as minutex,
+event,
+count(1) as cnt
+from v$active_session_history
+where 
+sample_time between
+    to_date('01-03-16 11.00.00','dd-mm-yy hh24:mi:ss')
+    and
+    to_date('01-03-16 13.00.00','dd-mm-yy hh24:mi:ss')
+    --and extract( hour from sample_time) between 8 and 18   
+group by 
+trim (to_char(sample_time ,'dd-mm-yy')),
+extract( hour from sample_time), 
+extract( minute from sample_time), 
+event
+) a )b
+where row_numberx<10
+and event is not null
+order by cnt desc;
+
+
+**********************************-----------ASH  sql_id ye göre 
+select hourx,timex,sql_id,event,cnt from (
+select a.*,ROW_NUMBER() OVER (partition by a.hourx ,a.timex ORDER BY a.cnt desc NULLS LAST )as row_numberx 
+from (
+select 
+extract( hour from sample_time) as hourx,
+trim (to_char(sample_time ,'mi')) as timex,
+sql_id,
+event,
+count(1) as cnt
+from v$active_session_history
+where sample_time between
+    to_date('09-05-16 13.00.00','dd-mm-yy hh24:mi:ss')
+    and
+    to_date('09-05-16 23.59.00','dd-mm-yy hh24:mi:ss')
+    
+group by sql_id,event,extract( hour from sample_time), trim (to_char(sample_time ,'mi'))
+)a)b
+where row_numberx<6
+---------------------------------------
+-----------------------------------------event e göre dakikalık
+select 
+extract( hour from sample_time) as hourx,
+trim (to_char(sample_time ,'mi')) as timex,
+event,
+count(1) as cnt
+from v$active_session_history
+where sample_time between
+    to_date('09-05-16 13.00.00','dd-mm-yy hh24:mi:ss')
+    and
+    to_date('09-05-16 23.59.00','dd-mm-yy hh24:mi:ss')
+    
+group by event,extract( hour from sample_time), trim (to_char(sample_time ,'mi'))
+having count(1)>3
+order by 1,2 asc,4 desc;
+
+-------------------------------------
+-------------------------------------
+
+***********************************---------------event_count
+
+select a.event,count(1) 
+from v$session_wait a 
+group by a.event order by 2 desc;
