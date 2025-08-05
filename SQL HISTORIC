@@ -1,0 +1,45 @@
+select a.sql_id, to_char(BEGIN_INTERVAL_TIME,'yyyy-mm-dd hh24:mi') ,
+       (sum(a.ELAPSED_TIME_DELTA))/decode((sum(a.EXECUTIONS_DELTA)),0,1,sum(a.EXECUTIONS_DELTA))/1000000 elapsed_time_per_exec,
+       TRUNC((sum(a.buffer_gets_DELTA))/decode((sum(a.EXECUTIONS_DELTA)),0,1,sum(a.EXECUTIONS_DELTA))) GETS_per_exec,
+       sum(a.EXECUTIONS_DELTA) executions,
+       (sum(a.ELAPSED_TIME_DELTA))/1000000 total_elapsed_time
+from DBA_HIST_SQLSTAT a,dba_hist_snapshot b
+where a.SNAP_ID=b.snap_id 
+ and a.instance_number=b.instance_number
+ and a.sql_id in (
+ 'gjqvh85mm23pv') 
+ --and a.instance_number=1
+group by  a.sql_id,to_char(BEGIN_INTERVAL_TIME,'yyyy-mm-dd hh24:mi')
+order by 1,2 desc
+
+
+select a.sql_id, to_char(BEGIN_INTERVAL_TIME,'yyyy-mm-dd hh24:mi') ,
+       (sum(a.ELAPSED_TIME_DELTA))/decode((sum(a.EXECUTIONS_DELTA)),0,1,sum(a.EXECUTIONS_DELTA))/1000000 elapsed_time_per_exec,
+       sum(a.EXECUTIONS_DELTA) executions,
+       (sum(a.ELAPSED_TIME_DELTA))/1000000 total_elapsed_time,
+       (sum(a.BUFFER_GETS_DELTA))/decode((sum(a.BUFFER_GETS_DELTA)),0,1,sum(a.EXECUTIONS_DELTA)) BUFFER_PER_EXEC
+from DBA_HIST_SQLSTAT a,dba_hist_snapshot b
+where a.SNAP_ID=b.snap_id 
+ and a.instance_number=b.instance_number
+ and a.sql_id in (
+ 'bkhs3pbz6pxwq') 
+ --and a.instance_number=1
+group by  a.sql_id,to_char(BEGIN_INTERVAL_TIME,'yyyy-mm-dd hh24:mi')
+order by 1,2 desc
+
+
+select * from dba_hist_sqltext where SQL_TEXT like 'SELECT%FROM%AUDIT_COUNTER%CIKEY%FOR%UPDATE%'
+
+bkhs3pbz6pxwq
+8ughyv7t3k9h3
+4s2c8hpqhy514
+
+SELECT CIKEY, CI_PARTITION_DATE, LAST_COUNT_ID, LAST_DETAIL_ID, LAST_EVENT_ID FROM AUDIT_COUNTER WHERE (CIKEY = :1) FOR UPDATE
+SELECT CIKEY, CI_PARTITION_DATE, LAST_COUNT_ID, LAST_DETAIL_ID, LAST_EVENT_ID FROM AUDIT_COUNTER WHERE (CIKEY = :1) FOR UPDATE
+SELECT CIKEY, LAST_COUNT_ID, LAST_DETAIL_ID, LAST_EVENT_ID, CI_PARTITION_DATE FROM AUDIT_COUNTER WHERE (CIKEY = :1 ) FOR UPDATE
+
+
+
+bkhs3pbz6pxwq
+8ughyv7t3k9h3
+4s2c8hpqhy514
