@@ -1,0 +1,24 @@
+sql baseline oluştur:
+
+DECLARE
+  l_plans_loaded NUMBER;
+BEGIN
+  l_plans_loaded := DBMS_SPM.LOAD_PLANS_FROM_CURSOR_CACHE(
+                      sql_id => 'c77kj9q3qz6tk',
+                      plan_hash_value => 1959922492,
+                      fixed => 'NO',
+                      enabled => 'YES');
+  DBMS_OUTPUT.PUT_LINE('Yüklenen plan sayısı: ' || l_plans_loaded);
+END;
+/
+
+
+---------------------------------------------------------------------------------------
+
+
+SELECT sql_handle, plan_name, enabled, accepted, fixed,LAST_MODIFIED
+FROM dba_sql_plan_baselines
+WHERE signature IN (
+    SELECT signature FROM v$sql
+    WHERE sql_id='c77kj9q3qz6tk'
+) order by LAST_MODIFIED desc;
