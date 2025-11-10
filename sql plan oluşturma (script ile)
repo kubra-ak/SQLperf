@@ -1,0 +1,31 @@
+
+Toadda aşağıdaki script ilgili sql_id için çalıştırılır. toadda dbms_output kısmı on olmalı. çalışınca dbms_output kısmındaki task_id alınır
+
+declare
+stmt_task VARCHAR2(40);
+begin
+stmt_task := DBMS_SQLTUNE.CREATE_TUNING_TASK(sql_id => '2cjvznb2khq3d');
+DBMS_OUTPUT.put_line('task_id: ' || stmt_task );
+end;
+
+örnek çıktı: TASK_9691
+
+tuning task oluşturulur:
+
+begin
+DBMS_SQLTUNE.EXECUTE_TUNING_TASK(task_name => 'TASK_9691');
+end;
+/
+
+Aşağıdaki sorgudan oluşturulan task kontrol edilir;
+SELECT TASK_NAME, STATUS FROM DBA_ADVISOR_LOG WHERE TASK_NAME = 'TASK_9691';
+SELECT * FROM DBA_ADVISOR_LOG
+
+SELECT DBMS_SQLTUNE.REPORT_TUNING_TASK('TASK_9691') AS recommendations FROM dual;
+
+DBA_ADVISOR_LOG'daki task_ownerı neyse aşağıdaki sorguda da değiştir:
+
+begin
+DBMS_SQLTUNE.ACCEPT_SQL_PROFILE(task_name => 'TASK_9691', task_owner => 'SYS', replace => TRUE);
+end;
+/
