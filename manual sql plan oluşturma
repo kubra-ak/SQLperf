@@ -1,0 +1,120 @@
+select * from DBA_SQL_PROFILES where name like '%g90hfza5jpnx3%'
+
+aşağıdaki scriptte coe içindeki plan kısmını al.
+coe içinde alınacak kısım:
+h := SYS.SQLPROF_ATTR(
+.
+.
+:signature := DBMS_SQLTUNE.SQLTEXT_TO_SIGNATURE(sql_txt);
+
+REM
+VAR signature NUMBER;
+DECLARE
+sql_txt CLOB;
+h       SYS.SQLPROF_ATTR;
+BEGIN
+SELECT SQL_FULLTEXT INTO sql_txt FROM V$SQLAREA WHERE SQL_ID = 'g90hfza5jpnx3';
+h := SYS.SQLPROF_ATTR(
+q'[BEGIN_OUTLINE_DATA]',
+q'[IGNORE_OPTIM_EMBEDDED_HINTS]',
+q'[OPTIMIZER_FEATURES_ENABLE('19.1.0')]',
+q'[DB_VERSION('19.1.0')]',
+q'[OPT_PARAM('_optimizer_extended_cursor_sharing_rel' 'none')]',
+q'[OPT_PARAM('_optimizer_adaptive_cursor_sharing' 'false')]',
+q'[OPT_PARAM('_optimizer_use_feedback' 'false')]',
+q'[OPT_PARAM('_optimizer_gather_stats_on_load' 'false')]',
+q'[OPT_PARAM('_px_adaptive_dist_method' 'off')]',
+q'[OPT_PARAM('_optimizer_strans_adaptive_pruning' 'false')]',
+q'[OPT_PARAM('_optimizer_cbqt_or_expansion' 'off')]',
+q'[OPT_PARAM('_optimizer_nlj_hj_adaptive_join' 'false')]',
+q'[OPT_PARAM('_optimizer_gather_stats_on_load_index' 'false')]',
+q'[ALL_ROWS]',
+q'[OUTLINE_LEAF(@"SEL$11")]',
+q'[OUTLINE_LEAF(@"SEL$2FD85BFC")]',
+q'[MERGE(@"SEL$C6F9CC34" >"SEL$C526E6EA")]',
+q'[OUTLINE_LEAF(@"SEL$1")]',
+q'[OUTLINE(@"SEL$C526E6EA")]',
+q'[ANSI_REARCH(@"SEL$10")]',
+q'[OUTLINE(@"SEL$C6F9CC34")]',
+q'[MERGE(@"SEL$74F7C356" >"SEL$09275AE4")]',
+q'[OUTLINE(@"SEL$10")]',
+q'[OUTLINE(@"SEL$09275AE4")]',
+q'[ANSI_REARCH(@"SEL$18A8AB31")]',
+q'[OUTLINE(@"SEL$74F7C356")]',
+q'[MERGE(@"SEL$20289A1C" >"SEL$58D371A3")]',
+q'[OUTLINE(@"SEL$18A8AB31")]',
+q'[ANSI_REARCH(@"SEL$9")]',
+q'[OUTLINE(@"SEL$58D371A3")]',
+q'[ANSI_REARCH(@"SEL$22E1E847")]',
+q'[OUTLINE(@"SEL$20289A1C")]',
+q'[MERGE(@"SEL$069DD1A3" >"SEL$4F879125")]',
+q'[OUTLINE(@"SEL$9")]',
+q'[OUTLINE(@"SEL$22E1E847")]',
+q'[ANSI_REARCH(@"SEL$8")]',
+q'[OUTLINE(@"SEL$4F879125")]',
+q'[ANSI_REARCH(@"SEL$2706C554")]',
+q'[OUTLINE(@"SEL$069DD1A3")]',
+q'[MERGE(@"SEL$9102CAFB" >"SEL$00B1BF8A")]',
+q'[OUTLINE(@"SEL$8")]',
+q'[OUTLINE(@"SEL$2706C554")]',
+q'[ANSI_REARCH(@"SEL$7")]',
+q'[OUTLINE(@"SEL$00B1BF8A")]',
+q'[ANSI_REARCH(@"SEL$29421ABC")]',
+q'[OUTLINE(@"SEL$9102CAFB")]',
+q'[MERGE(@"SEL$98196233" >"SEL$EB4BAB32")]',
+q'[OUTLINE(@"SEL$7")]',
+q'[OUTLINE(@"SEL$29421ABC")]',
+q'[ANSI_REARCH(@"SEL$6")]',
+q'[OUTLINE(@"SEL$EB4BAB32")]',
+q'[ANSI_REARCH(@"SEL$5")]',
+q'[OUTLINE(@"SEL$98196233")]',
+q'[MERGE(@"SEL$C97233AF" >"SEL$E6E74641")]',
+q'[OUTLINE(@"SEL$6")]',
+q'[OUTLINE(@"SEL$5")]',
+q'[OUTLINE(@"SEL$E6E74641")]',
+q'[ANSI_REARCH(@"SEL$4")]',
+q'[OUTLINE(@"SEL$C97233AF")]',
+q'[MERGE(@"SEL$2" >"SEL$006708EA")]',
+q'[OUTLINE(@"SEL$4")]',
+q'[OUTLINE(@"SEL$006708EA")]',
+q'[ANSI_REARCH(@"SEL$3")]',
+q'[OUTLINE(@"SEL$2")]',
+q'[OUTLINE(@"SEL$3")]',
+q'[NO_ACCESS(@"SEL$1" "from$_subquery$_001"@"SEL$1")]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "M"@"SEL$2" ("MSU_MERCHANT"."ID"))]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "MCC"@"SEL$4" ("MSU_MCC"."CODE"))]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "T"@"SEL$2" ("MSU_TRANSACTION"."TS_CREATED"))]',
+q'[BATCH_TABLE_ACCESS_BY_ROWID(@"SEL$2FD85BFC" "T"@"SEL$2")]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "OBTD"@"SEL$6" ("MSU_OPEN_BANKING_TRANSACTION_DETAILS"."TRANSACTION_ID"))]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "ST"@"SEL$7" ("MSU_SELLER_TRANSACTION"."TRANSACTION_ID"))]',
+q'[BATCH_TABLE_ACCESS_BY_ROWID(@"SEL$2FD85BFC" "ST"@"SEL$7")]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "MGPT"@"SEL$5" ("MSU_GIB_PROCESSED_TRANSACTION"."TRANSACTION_ID"))]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "S"@"SEL$8" ("MSU_SELLER"."ID"))]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "PS"@"SEL$3" ("MSU_PAYMENT_SYSTEM"."ID"))]',
+q'[INDEX_RS_ASC(@"SEL$2FD85BFC" "OB"@"SEL$9" ("MSU_MERCHANT"."ID"))]',
+q'[LEADING(@"SEL$2FD85BFC" "M"@"SEL$2" "MCC"@"SEL$4" "T"@"SEL$2" "OBTD"@"SEL$6" "ST"@"SEL$7" "MGPT"@"SEL$5" "S"@"SEL$8" "PS"@"SEL$3" "OB"@"SEL$9")]',
+q'[USE_NL(@"SEL$2FD85BFC" "MCC"@"SEL$4")]',
+q'[USE_NL(@"SEL$2FD85BFC" "T"@"SEL$2")]',
+q'[USE_NL(@"SEL$2FD85BFC" "OBTD"@"SEL$6")]',
+q'[USE_NL(@"SEL$2FD85BFC" "ST"@"SEL$7")]',
+q'[USE_NL(@"SEL$2FD85BFC" "MGPT"@"SEL$5")]',
+q'[USE_NL(@"SEL$2FD85BFC" "S"@"SEL$8")]',
+q'[USE_NL(@"SEL$2FD85BFC" "PS"@"SEL$3")]',
+q'[USE_NL(@"SEL$2FD85BFC" "OB"@"SEL$9")]',
+q'[USE_HASH_AGGREGATION(@"SEL$2FD85BFC")]',
+q'[INDEX_RS_ASC(@"SEL$11" "MSU_TRANSACTION"@"SEL$11" ("MSU_TRANSACTION"."MERCHANT_PAYMENT_ID" "MSU_TRANSACTION"."MERCHANT_ID" "MSU_TRANSACTION"."STATUS" "MSU_TRANSACTION"."TYPE"))]',
+q'[BATCH_TABLE_ACCESS_BY_ROWID(@"SEL$11" "MSU_TRANSACTION"@"SEL$11")]',
+q'[END_OUTLINE_DATA]');
+:signature := DBMS_SQLTUNE.SQLTEXT_TO_SIGNATURE(sql_txt);
+DBMS_SQLTUNE.IMPORT_SQL_PROFILE (
+sql_text    => sql_txt,
+profile     => h,
+name        => 'coe_g90hfza5jpnx3_3508715477',
+description => 'coe g90hfza5jpnx3_3508715477 '||:signature||'',
+category    => 'DEFAULT',
+validate    => TRUE,
+replace     => TRUE,
+force_match => FALSE /* TRUE:FORCE (match even when different literals in SQL). FALSE:EXACT (similar to CURSOR_SHARING) */ );
+END;
+/
+ 
