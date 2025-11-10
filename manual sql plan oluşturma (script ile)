@@ -29,3 +29,7 @@ begin
 DBMS_SQLTUNE.ACCEPT_SQL_PROFILE(task_name => 'TASK_9691', task_owner => 'SYS', replace => TRUE);
 end;
 /
+
+
+
+NOT: task name oem'deki tuning advisor ile de task oluşturulup task_name ordan alınabilir
