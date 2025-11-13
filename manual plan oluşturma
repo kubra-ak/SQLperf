@@ -1,0 +1,57 @@
+
+Coe içindeki plan kısmını aşaüıdaki scriptteki plan kısmına koy:
+h := SYS.SQLPROF_ATTR(
+.
+.
+.
+:signature := DBMS_SQLTUNE.SQLTEXT_TO_SIGNATURE(sql_txt);
+
+
+
+
+
+
+
+
+
+
+
+REM
+VAR signature NUMBER;
+DECLARE
+sql_txt CLOB;
+h       SYS.SQLPROF_ATTR;
+BEGIN
+SELECT SQL_FULLTEXT INTO sql_txt FROM V$SQLAREA WHERE SQL_ID = '2wg3hg8j6m3xr';
+h := SYS.SQLPROF_ATTR(
+q'[BEGIN_OUTLINE_DATA]',
+q'[IGNORE_OPTIM_EMBEDDED_HINTS]',
+q'[OPTIMIZER_FEATURES_ENABLE('19.1.0')]',
+q'[DB_VERSION('19.1.0')]',
+q'[OPT_PARAM('_optimizer_extended_cursor_sharing_rel' 'none')]',
+q'[OPT_PARAM('_optimizer_adaptive_cursor_sharing' 'false')]',
+q'[OPT_PARAM('_optimizer_use_feedback' 'false')]',
+q'[OPT_PARAM('_optimizer_gather_stats_on_load' 'false')]',
+q'[OPT_PARAM('_px_adaptive_dist_method' 'off')]',
+q'[OPT_PARAM('_optimizer_strans_adaptive_pruning' 'false')]',
+q'[OPT_PARAM('_optimizer_cbqt_or_expansion' 'off')]',
+q'[OPT_PARAM('_optimizer_nlj_hj_adaptive_join' 'false')]',
+q'[OPT_PARAM('_optimizer_gather_stats_on_load_index' 'false')]',
+q'[ALL_ROWS]',
+q'[OUTLINE_LEAF(@"SEL$1")]',
+q'[BITMAP_TREE(@"SEL$1" "FIMTRANSACTION"@"SEL$1" OR(1 1 ("FIMTRANSACTION"."DIMUID" "FIMTRANSACTION"."TRAN_TS") 2 ("FIMTRANSACTION"."CRITERIA1" "FIMTRANSACTION"."POINTS")))]',
+q'[BATCH_TABLE_ACCESS_BY_ROWID(@"SEL$1" "FIMTRANSACTION"@"SEL$1")]',
+q'[END_OUTLINE_DATA]');
+:signature := DBMS_SQLTUNE.SQLTEXT_TO_SIGNATURE(sql_txt);
+DBMS_SQLTUNE.IMPORT_SQL_PROFILE (
+sql_text    => sql_txt,
+profile     => h,
+name        => 'coe_2wg3hg8j6m3xr_1228996470',
+description => 'coe 2wg3hg8j6m3xr 1228996470 '||:signature||'',
+category    => 'DEFAULT',
+validate    => TRUE,
+replace     => TRUE,
+force_match => FALSE /* TRUE:FORCE (match even when different literals in SQL). FALSE:EXACT (similar to CURSOR_SHARING) */ );
+END;
+/
+ 
